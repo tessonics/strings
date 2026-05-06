@@ -1,7 +1,7 @@
 #pragma once
 
 #include <charconv>
-#include <type_traits>
+#include <concepts>
 
 #ifndef __cpp_lib_to_chars
 #ifndef STRINGS_USE_TOCHARS_FLOAT_STUB
@@ -16,8 +16,7 @@
 namespace std {
 
 #ifdef STRINGS_USE_TOCHARS_FLOAT_STUB
-template <typename T>
-requires std::is_floating_point_v<T>
+template <std::floating_point T>
 inline to_chars_result to_chars(char* first, char* last, T const& value)
 {
     auto const nmax = last - first;
@@ -27,8 +26,7 @@ inline to_chars_result to_chars(char* first, char* last, T const& value)
     else
         return {first + n, std::errc{}};
 }
-template <typename T>
-requires std::is_floating_point_v<T>
+template <std::floating_point T>
 inline to_chars_result to_chars(char* first, char* last, T const& value, std::chars_format fmt)
 {
     auto spec = "%g";
@@ -52,7 +50,7 @@ inline to_chars_result to_chars(char* first, char* last, T const& value, std::ch
         return {first + n, std::errc{}};
 }
 template <typename T>
-requires std::is_floating_point_v<T>
+requires std::floating_point<T>
 inline to_chars_result to_chars(char* first, char* last, T const& value, std::chars_format fmt, int precision)
 {
     auto spec = "%.*g";

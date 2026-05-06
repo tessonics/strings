@@ -1,9 +1,9 @@
 #pragma once
 
-#include "charconv_stubs.hpp"
 #include "format_locale.hpp"
 #include "format_spec.hpp"
 #include "marshal_traits.hpp"
+#include "charconv_stubs.hpp"
 #include <array>
 #include <charconv>
 #include <cmath>
@@ -12,7 +12,6 @@
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <tuple>
 #include <vector>
 
 namespace strings {
@@ -43,35 +42,14 @@ struct writer {
     {
     }
 
-    constexpr auto empty() const noexcept
-    {
-        return cursor_ == first_;
-    }
-    constexpr auto capacity() const noexcept
-    {
-        return size_t(last_ - first_);
-    }
-    constexpr auto size() const noexcept
-    {
-        return size_t(cursor_ - first_);
-    }
-    constexpr auto remaining() const noexcept
-    {
-        return size_t(last_ - cursor_);
-    }
+    constexpr auto empty() const noexcept { return cursor_ == first_; }
+    constexpr auto capacity() const noexcept { return size_t(last_ - first_); }
+    constexpr auto size() const noexcept { return size_t(cursor_ - first_); }
+    constexpr auto remaining() const noexcept { return size_t(last_ - cursor_); }
 
-    constexpr operator const std::string_view() const noexcept
-    {
-        return {first_, size()};
-    }
-    constexpr auto string_view() const -> std::string_view
-    {
-        return {first_, size()};
-    }
-    auto string() const -> std::string
-    {
-        return std::string{first_, size()};
-    }
+    constexpr operator const std::string_view() const noexcept { return {first_, size()}; }
+    constexpr auto string_view() const -> std::string_view { return {first_, size()}; }
+    auto string() const -> std::string { return std::string{first_, size()}; }
 
     constexpr auto clear() -> writer&;
 
@@ -79,16 +57,15 @@ struct writer {
     constexpr auto write(std::string_view sv) -> std::errc;
 
     template <typename T>
-        requires(!std::same_as<T, std::string_view> && convertible_to_<T, std::string_view> &&
-                    !marshalable<T>)
+    requires(!std::same_as<T, std::string_view> && std::convertible_to<T, std::string_view> && !marshalable<T>)
     constexpr auto write(T const& s) -> std::errc;
 
     template <typename T, typename... Args>
-        requires(to_chars_convertible<T, Args...> && !marshalable<T>)
+    requires(to_chars_convertible<T, Args...> && !marshalable<T>)
     constexpr auto write(T const& v, Args&&... args) -> std::errc;
 
     template <typename T, typename... Args>
-        requires marshalable<T, Args...>
+    requires marshalable<T, Args...>
     constexpr auto write(T const& value, Args&&... args) -> std::errc;
 
     template <detail::supported_format_arg... Ts>
@@ -100,8 +77,7 @@ protected:
     char* last_ = nullptr;
     char fp_decimal_ = '.';
 
-    template <detail::supported_format_arg T>
-    constexpr auto vfmt(T const& v, fmt::arg const&) -> std::errc;
+    template <detail::supported_format_arg T> constexpr auto vfmt(T const& v, fmt::arg const&) -> std::errc;
 
 private:
     constexpr auto check(std::to_chars_result const& cr) -> std::errc
@@ -143,10 +119,7 @@ struct zwriter : public writer {
         return first_;
     }
 
-    constexpr operator char const*() noexcept
-    {
-        return c_str();
-    }
+    constexpr operator char const*() noexcept { return c_str(); }
 };
 
 static constexpr std::size_t RuntimeCapacity = 0;
@@ -159,13 +132,13 @@ template <std::size_t StorageCapacity = RuntimeCapacity> struct builder : public
             char[StorageCapacity]>; // stack-allocated storage
 
     builder()
-        requires(StorageCapacity != RuntimeCapacity)
+    requires(StorageCapacity != RuntimeCapacity)
         : zwriter{buf_, buf_ + StorageCapacity}
     {
     }
 
     builder(std::size_t capacity)
-        requires(StorageCapacity == RuntimeCapacity)
+    requires(StorageCapacity == RuntimeCapacity)
         : zwriter{}
         , buf_(capacity + 1)
     {
@@ -175,13 +148,13 @@ template <std::size_t StorageCapacity = RuntimeCapacity> struct builder : public
     }
 
     constexpr builder(char fp_decimal)
-        requires(StorageCapacity != RuntimeCapacity)
+    requires(StorageCapacity != RuntimeCapacity)
         : zwriter{buf_, buf_ + StorageCapacity, fp_decimal}
     {
     }
 
     constexpr builder(std::size_t capacity, char fp_decimal)
-        requires(StorageCapacity == RuntimeCapacity)
+    requires(StorageCapacity == RuntimeCapacity)
         : zwriter{fp_decimal}
         , buf_(capacity + 1)
     {
@@ -225,20 +198,19 @@ constexpr auto writer::write(std::string_view sv) -> std::errc
 }
 
 template <typename T>
-    requires(!std::same_as<T, std::string_view> && convertible_to_<T, std::string_view> &&
-                !marshalable<T>)
+requires(!std::same_as<T, std::string_view> && std::convertible_to<T, std::string_view> && !marshalable<T>)
 constexpr auto writer::write(T const& s) -> std::errc
 {
     return write(std::string_view(s));
 }
 
 template <typename T, typename... Args>
-    requires(to_chars_convertible<T, Args...> && !marshalable<T>)
+requires(to_chars_convertible<T, Args...> && !marshalable<T>)
 constexpr auto writer::write(T const& v, Args&&... args) -> std::errc
 {
     constexpr auto nargs = sizeof...(Args);
 
-    if constexpr (std::is_floating_point_v<T> && (nargs == 0)) {
+    if constexpr (std::floating_point<T> && (nargs == 0)) {
         auto const spec = sizeof(T) >= 8 ? "%.16g" : "%.7g";
         auto const n = std::snprintf(cursor_, last_ - cursor_, spec, v);
 
@@ -262,7 +234,7 @@ constexpr auto writer::write(T const& v, Args&&... args) -> std::errc
 }
 
 template <typename T, typename... Args>
-    requires marshalable<T, Args...>
+requires marshalable<T, Args...>
 constexpr auto writer::write(T const& value, Args&&... args) -> std::errc
 {
     if constexpr (chars_marshalable<T, Args...>) {
@@ -277,8 +249,7 @@ constexpr auto writer::write(T const& value, Args&&... args) -> std::errc
         return std::errc::not_supported;
 }
 
-template <detail::supported_format_arg T>
-constexpr auto writer::vfmt(T const& v, fmt::arg const& a) -> std::errc
+template <detail::supported_format_arg T> constexpr auto writer::vfmt(T const& v, fmt::arg const& a) -> std::errc
 {
     if constexpr (formattable<T>) {
         auto f = formatter<T>{};
@@ -290,13 +261,13 @@ constexpr auto writer::vfmt(T const& v, fmt::arg const& a) -> std::errc
     else if constexpr (marshalable<T>) {
         return write(v);
     }
-    else if constexpr (convertible_to_<T, std::string_view>) {
+    else if constexpr (std::convertible_to<T, std::string_view>) {
         if (a.type != ' ' && a.type != 's')
             return std::errc::invalid_argument;
         else
             return write(v);
     }
-    else if constexpr (std::is_integral_v<T>) {
+    else if constexpr (std::integral<T>) {
         char pfspec[16];
         if (!fmt::convert_printf_spec<T>(a, pfspec))
             return std::errc::invalid_argument;
@@ -307,7 +278,7 @@ constexpr auto writer::vfmt(T const& v, fmt::arg const& a) -> std::errc
         cursor_ += n;
         return std::errc{};
     }
-    else if constexpr (std::is_floating_point_v<T>) {
+    else if constexpr (std::floating_point<T>) {
         if (auto fpc = std::fpclassify(v); fpc == FP_ZERO) {
             write_codeunit('0');
             return std::errc{};
