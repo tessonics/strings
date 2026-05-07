@@ -6,6 +6,7 @@
 #include "charconv_stubs.hpp"
 #include <array>
 #include <charconv>
+#include <cmath>
 #include <concepts>
 #include <limits>
 #include <string>

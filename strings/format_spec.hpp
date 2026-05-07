@@ -1,7 +1,10 @@
 #pragma once
 
 #include <charconv>
+#include <concepts>
+#include <limits>
 #include <string_view>
+#include <type_traits>
 
 namespace strings::fmt {
 
